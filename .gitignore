@@ -1,0 +1,83 @@
+# Ignore build output directories
+bin/
+obj/
+
+# Ignore user-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Ignore Visual Studio Code settings
+.vscode/
+
+# Ignore Rider/JetBrains IDE settings
+.idea/
+*.iml
+
+# Ignore NuGet packages
+*.nupkg
+packages/
+.nuget/
+
+# Ignore logs and debug files
+*.log
+*.tlog
+*.vspscc
+*.vssscc
+
+# Ignore temporary files
+*.tmp
+*.temp
+*.cache
+*.pdb
+*.ilk
+*.idb
+
+# Ignore compiled files
+*.dll
+*.exe
+*.app
+*.so
+*.dylib
+*.lib
+
+# Ignore generated files
+*.g.*
+*.g.i.*
+*.iobj
+*.ipdb
+
+# Ignore publish output
+publish/
+
+# Ignore image cache files
+img/*.cache
+
+# Ignore OS-specific files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Ignore settings and secrets
+appsettings.json
+appsettings.*.json
+secrets.json
+
+# Ignore Rider/JetBrains IDE settings
+.idea/
+*.iml
+
+# Ignore WPF-specific generated files
+*.g.cs
+*.g.i.cs
+*.resources
+*.resx
+
+# Ignore test results
+TestResults/
+*.trx
+*.coverage
+
+# Ignore dependency manager directories
+node_modules/
