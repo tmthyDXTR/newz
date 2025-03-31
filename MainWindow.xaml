@@ -1,0 +1,154 @@
+<Window x:Class="Nius.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Nius - News Aggregator"
+        Height="800"
+        Width="800"
+        Background="Black"
+        Foreground="White"
+        FontFamily="Ubuntu Mono"
+        FontSize="18">
+    <Window.Resources>
+        <!-- Add a brush resource for consistent color reference -->
+        <SolidColorBrush x:Key="ReadItemBrush"
+                         Color="#FF808080"/>
+
+        <!-- Style for read articles -->
+        <Style x:Key="ReadItemStyle"
+               TargetType="ListBoxItem">
+            <Setter Property="Foreground"
+                    Value="{StaticResource ReadItemBrush}"/>
+            <Setter Property="FontWeight"
+                    Value="Normal"/>
+        </Style>
+        <!-- Style for unread articles -->
+        <Style x:Key="UnreadItemStyle"
+               TargetType="ListBoxItem">
+            <Setter Property="Foreground"
+                    Value="White"/>
+            <Setter Property="FontWeight"
+                    Value="Bold"/>
+        </Style>
+    </Window.Resources>
+    <Grid>
+        <DockPanel LastChildFill="True">
+            <!-- Reload Button and Toggle Opened Button at the top -->
+            <StackPanel Orientation="Horizontal"
+                        HorizontalAlignment="Right"
+                        Margin="5"
+                        DockPanel.Dock="Top">
+                <Button Content="Reload"
+                        Click="ReloadButton_Click"
+                        Width="80"
+                        Margin="0,0,5,0"/>
+                <Button Content="Toggle Opened"
+                        Click="ToggleOpenedButton_Click"
+                        Width="120"
+                        Margin="0,0,5,0"/>
+                <Button Content="Switch Font"
+                        Click="SwitchFont_Click"
+                        Width="100"
+                        Margin="0,0,5,0"/>
+                <Button Content="Toggle Images"
+                        Click="ToggleImages_Click"
+                        Width="120"/>
+            </StackPanel>
+            <TabControl x:Name="MainTabControl"
+                        KeyDown="MainTabControl_KeyDown">
+                <!-- NEW: Status tab for status messages -->
+                <TabItem Header="Status">
+                    <ScrollViewer x:Name="StatusScrollViewer"
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Auto">
+                        <TextBlock x:Name="StatusText"
+                                   FontFamily="Ubuntu Mono"
+                                   Background="Black"
+                                   Foreground="White"
+                                   Margin="5"
+                                   Text="Initializing..."/>
+                    </ScrollViewer>
+                </TabItem>
+                <TabItem Header="News">
+                    <Grid>
+                        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Auto"
+                                      PreviewMouseWheel="ScrollViewer_PreviewMouseWheel">
+                            <ListBox x:Name="NewsList"
+                                     FontFamily="Ubuntu Mono"
+                                     Background="Black"
+                                     Foreground="White"
+                                     BorderThickness="0"
+                                     HorizontalContentAlignment="Stretch"
+                                     VerticalContentAlignment="Stretch"
+                                     ScrollViewer.CanContentScroll="False"
+                                     Focusable="True"
+                                     IsTabStop="True"
+                                     KeyboardNavigation.TabNavigation="Once"
+                                     KeyboardNavigation.DirectionalNavigation="Continue"
+                                     IsSynchronizedWithCurrentItem="True"
+                                     PreviewKeyDown="NewsList_PreviewKeyDown"
+                                     MouseDoubleClick="ListBox_MouseDoubleClick"
+                                     KeyDown="ListBox_KeyDown">
+                                <ListBox.ItemContainerStyle>
+                                    <Style TargetType="ListBoxItem">
+                                        <Setter Property="HorizontalContentAlignment"
+                                                Value="Stretch"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsRead}"
+                                                         Value="True">
+                                                <Setter Property="Foreground"
+                                                        Value="{StaticResource ReadItemBrush}"/>
+                                                <Setter Property="FontWeight"
+                                                        Value="Normal"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding IsRead}"
+                                                         Value="False">
+                                                <Setter Property="Foreground"
+                                                        Value="White"/>
+                                                <Setter Property="FontWeight"
+                                                        Value="Bold"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ListBox.ItemContainerStyle>
+                            </ListBox>
+                        </ScrollViewer>
+                    </Grid>
+                </TabItem>
+                <TabItem Header="Article">
+                    <ScrollViewer x:Name="ArticleScrollViewer"
+                                  Margin="1"
+                                  VerticalScrollBarVisibility="Visible"
+                                  HorizontalScrollBarVisibility="Disabled"
+                                  Focusable="True"
+                                  CanContentScroll="False"
+                                  PreviewKeyDown="ArticleScrollViewer_PreviewKeyDown"
+                                  PreviewMouseWheel="ScrollViewer_PreviewMouseWheel">
+                        <RichTextBox x:Name="ArticleRichTextBox"
+                                     IsReadOnly="True"
+                                     IsDocumentEnabled="True"
+                                     BorderThickness="0"
+                                     FontFamily="Ubuntu Mono"
+                                     FontSize="16"
+                                     Padding="10"
+                                     HorizontalContentAlignment="Stretch"
+                                     Width="{Binding ActualWidth, ElementName=ArticleScrollViewer, Mode=OneWay}">
+                            <RichTextBox.Background>
+                                <ImageBrush x:Name="ArticleBackground"
+                                            Stretch="UniformToFill"
+                                            TileMode="Tile"/>
+                            </RichTextBox.Background>
+                            <RichTextBox.Document>
+                                <FlowDocument PageWidth="{Binding ActualWidth, ElementName=ArticleScrollViewer, Mode=OneWay}"
+                                              PagePadding="0"
+                                              LineHeight="1.5"
+                                              TextAlignment="Left">
+                                </FlowDocument>
+                            </RichTextBox.Document>
+                        </RichTextBox>
+                    </ScrollViewer>
+                </TabItem>
+            </TabControl>
+        </DockPanel>
+    </Grid>
+</Window>
