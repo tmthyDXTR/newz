@@ -23,6 +23,7 @@ namespace Nius.Settings
             "https://www.tagesschau.de/wirtschaft/index~rss2.xml",
             "https://www.tagesschau.de/ausland/index~rss2.xml",
             "https://www.tagesschau.de/inland/regional/bayern/index~rss2.xml",
+            "https://www.hltv.org/rss/news"
         };
         public string ArticleFontFamily { get; set; } = "Ubuntu Mono";
         public double ArticleFontSize { get; set; } = 16;
@@ -30,6 +31,7 @@ namespace Nius.Settings
         public double ArticleMargin { get; set; } = 10;
         public double ParagraphSideMargin { get; set; } = 20;
         public int MouseWheelScrollLines { get; set; } = 3;
+        public bool IsDarkMode { get; set; } = false;
 
         // Load settings from file or create default settings
         public static AppSettings Load()

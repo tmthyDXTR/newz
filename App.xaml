@@ -10,6 +10,18 @@
     <Style TargetType="{x:Type TextBlock}">
       <Setter Property="FontFamily" Value="Ubuntu Mono"/>
     </Style>
+    
+    <!-- Light Mode Resources -->
+    <SolidColorBrush x:Key="LightModeBackground" Color="Transparent"/>
+    <SolidColorBrush x:Key="LightModeText" Color="Black"/>
+    
+    <!-- Dark Mode Resources -->
+    <SolidColorBrush x:Key="DarkModeBackground" Color="#333333"/>
+    <SolidColorBrush x:Key="DarkModeText" Color="#F5F5DC"/> <!-- Beige text -->
+    
+    <!-- Default to Light Mode -->
+    <ImageBrush x:Key="DefaultArticleBackground" ImageSource="/img/beige-paper-texture.jpg" Stretch="UniformToFill" TileMode="Tile"/>
+    
     <!-- ...existing resource dictionaries... -->
   </Application.Resources>
 </Application>

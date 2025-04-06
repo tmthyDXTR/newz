@@ -32,7 +32,6 @@ namespace Nius
     {
         // Replace individual settings with an AppSettings instance
         private AppSettings settings;
-        private readonly FeedService feedService = new FeedService();
         private double currentTextBlockWidth;
         // NEW: Track article history persistently
         private bool showOpenedArticles = true; // NEW: true = show opened articles; false = hide them
@@ -40,6 +39,8 @@ namespace Nius
         // Add a class field to track the last selected article item
         private ListBoxItem lastSelectedArticleItem;
         private bool showArticleImages = true; // NEW: Toggle for image preview in list
+        // Add a flag to track the current theme
+        private bool _isDarkMode = false;
 
         public MainWindow()
         {
@@ -47,6 +48,9 @@ namespace Nius
 
             // Load settings when the application starts
             settings = AppSettings.Load();
+            
+            // Load dark mode setting from settings
+            _isDarkMode = settings.IsDarkMode;
 
             // Set up a handler for window size changes
             SizeChanged += MainWindow_SizeChanged;
@@ -258,7 +262,7 @@ namespace Nius
         /// <summary>
         /// Processes each feed document and adds its items to the UI
         /// </summary>
-        private async Task ProcessFeedDocuments(List<XDocument> feedDocuments, List<string> feedUrls)
+        private Task ProcessFeedDocuments(List<XDocument> feedDocuments, List<string> feedUrls)
         {
             int globalArticleCounter = 1;
             int feedCounter = 0;
@@ -311,6 +315,7 @@ namespace Nius
             }
 
             AppendStatus($"Added {NewsList.Items.Count} feeds to UI");
+            return Task.CompletedTask;
         }
 
         /// <summary>
@@ -722,16 +727,6 @@ namespace Nius
             }
         }
 
-        private FlowDocument ParseTazArticle(string html, FeedItem feedData)
-        {
-            return ArticleParser.ParseTazArticle(html, feedData, settings, this.ActualWidth);
-        }
-
-        private FlowDocument ParseTagesschauArticle(string html, FeedItem feedData)
-        {
-            return ArticleParser.ParseTagesschauArticle(html, feedData, settings, this.ActualWidth);
-        }
-
         // Helper method to update formatting of the currently displayed article.
         private void UpdateArticleFormat()
         {
@@ -809,35 +804,80 @@ namespace Nius
                 Debug.WriteLine("No link available to open.");
                 return;
             }
+
             try
             {
-                using (HttpClient client = new HttpClient())
-                {
-                    string content = await client.GetStringAsync(feedData.Link);
-                    Debug.WriteLine("Article loaded from " + feedData.Link);
-                    FlowDocument doc;
-                    if (feedData.Link.Contains("tagesschau.de"))
-                    {
-                        doc = ParseTagesschauArticle(content, feedData);
-                    }
-                    else
-                    {
-                        doc = ParseTazArticle(content, feedData);
-                    }
-                    ArticleRichTextBox.Document = doc;
-                    MainTabControl.SelectedIndex = 2; // switch to Article tab
-                    ArticleScrollViewer.Focus();
-                    ArticleScrollViewer.ScrollToTop();
+                // Use FetchArticleAsync from FeedLoader instead of a new HttpClient
+                string content = await FeedLoader.FetchArticleAsync(feedData.Link);
+                Debug.WriteLine("Article loaded from " + feedData.Link);
+                AppendStatus("Article loaded from " + feedData.Link);
+                File.WriteAllText("debug_output.txt", content);
 
-                    // Just call MarkArticleAsRead which handles all style updates in one place
-                    MarkArticleAsRead(feedData);
+                FlowDocument doc;
+                if (feedData.Link.Contains("tagesschau.de"))
+                {
+                    string debugText = "Parsing with Tagesschau parser.";
+                    Debug.WriteLine(debugText);
+                    AppendStatus(debugText);
+                    doc = await ArticleParser.ParseTagesschauArticle(content, feedData, settings, this.ActualWidth);
                 }
+                else if (feedData.Link.Contains("hltv.org"))
+                {
+                    string debugText = "Parsing with HLTV parser.";
+                    Debug.WriteLine(debugText);
+                    AppendStatus(debugText);
+                    doc = await ArticleParser.ParseHLTVArticle(content, feedData, settings, this.ActualWidth);
+                }
+                else
+                {
+                    string debugText = "Parsing with Taz parser.";
+                    Debug.WriteLine(debugText);
+                    AppendStatus(debugText);
+                    doc = await ArticleParser.ParseTazArticle(content, feedData, settings, this.ActualWidth);
+                }
+
+                ArticleRichTextBox.Document = doc;
+                
+                // Apply dark mode to the article document if we're in dark mode
+                if (_isDarkMode)
+                {
+                    // Apply dark background and beige text to FlowDocument
+                    doc.Background = (SolidColorBrush)Application.Current.Resources["DarkModeBackground"];
+                    
+                    // Update text color for all paragraphs
+                    foreach (Block block in doc.Blocks)
+                    {
+                        if (block is Paragraph para)
+                        {
+                            para.Foreground = (SolidColorBrush)Application.Current.Resources["DarkModeText"];
+                        }
+                    }
+                }
+                
+                MainTabControl.SelectedIndex = 2; // switch to Article tab
+                ArticleScrollViewer.Focus();
+                ArticleScrollViewer.ScrollToTop();
+
+                // Just call MarkArticleAsRead which handles all style updates in one place
+                MarkArticleAsRead(feedData);
             }
             catch (Exception ex)
             {
                 Debug.WriteLine("Error loading article: " + ex.Message);
-                ArticleRichTextBox.Document.Blocks.Clear();
-                ArticleRichTextBox.Document.Blocks.Add(new Paragraph(new Run("Error loading article.")));
+                AppendStatus("Error loading article: " + ex.Message);
+                // Create a better error document
+                FlowDocument errorDoc = new FlowDocument();
+                Paragraph errorTitle = new Paragraph(new Run("Error Loading Article"))
+                {
+                    FontWeight = FontWeights.Bold,
+                    FontSize = 16
+                };
+                Paragraph errorMsg = new Paragraph(new Run(ex.Message));
+
+                errorDoc.Blocks.Add(errorTitle);
+                errorDoc.Blocks.Add(errorMsg);
+
+                ArticleRichTextBox.Document = errorDoc;
             }
         }
 
@@ -964,13 +1004,15 @@ namespace Nius
             return null;
         }
 
-        private async void ReloadButton_Click(object sender, RoutedEventArgs e)
+        private void ReloadButton_Click(object sender, RoutedEventArgs e)
         {
-            await LoadFeeds();
+            // Use Task.Run to avoid blocking the UI thread
+            // and don't make the method async since we're not awaiting the result
+            Task.Run(async () => await LoadFeeds());
         }
 
         // Replace both existing ToggleOpenedButton_Click methods with this one
-        private async void ToggleOpenedButton_Click(object sender, RoutedEventArgs e)
+        private void ToggleOpenedButton_Click(object sender, RoutedEventArgs e)
         {
             showOpenedArticles = !showOpenedArticles;
             Debug.WriteLine($"Toggled showOpenedArticles to {showOpenedArticles}");
@@ -984,7 +1026,9 @@ namespace Nius
             else
             {
                 // Fall back to full reload if filtering doesn't work
-                await LoadFeeds();
+                // Use Task.Run to avoid blocking the UI thread
+                // and don't make the method async since we don't need to await
+                Task.Run(async () => await LoadFeeds());
             }
         }
 
@@ -1652,6 +1696,185 @@ namespace Nius
 
             // For better visibility in the debug console
             Debug.WriteLine($"Status: {message}");
+        }
+
+        // Toggle dark mode
+        private void ToggleDarkMode_Click(object sender, RoutedEventArgs e)
+        {
+            _isDarkMode = !_isDarkMode;
+            
+            // Save the dark mode setting to application settings
+            settings.IsDarkMode = _isDarkMode;
+            settings.Save();
+            
+            ApplyTheme();
+        }
+
+        // Apply the current theme (light or dark)
+        private void ApplyTheme()
+        {
+            // Update the global dark mode setting in the article parser
+            ArticleParser.SetDarkMode(_isDarkMode);
+            
+            if (_isDarkMode)
+            {
+                // Apply dark mode
+                ArticleRichTextBox.Background = (SolidColorBrush)Application.Current.Resources["DarkModeBackground"];
+                
+                // Apply dark background and beige text to FlowDocument
+                if (ArticleRichTextBox.Document != null)
+                {
+                    ArticleRichTextBox.Document.Background = (SolidColorBrush)Application.Current.Resources["DarkModeBackground"];
+                    
+                    // Update text color for all paragraphs
+                    foreach (Block block in ArticleRichTextBox.Document.Blocks)
+                    {
+                        if (block is Paragraph para)
+                        {
+                            // If this is a summary paragraph (has background color and padding)
+                            if (para.Padding.Top > 0 && para.Background != null)
+                            {
+                                para.Background = new SolidColorBrush(Color.FromRgb(0, 0, 0)); // Black background in dark mode
+                                para.Foreground = (SolidColorBrush)Application.Current.Resources["DarkModeText"];
+                                para.BorderBrush = Brushes.DarkGray;
+                            }
+                            else
+                            {
+                                // Regular paragraph
+                                para.Foreground = (SolidColorBrush)Application.Current.Resources["DarkModeText"];
+                            }
+                        }
+                        else if (block is Table table)
+                        {
+                            // Update all table cells to use dark mode colors
+                            UpdateTableForDarkMode(table, true);
+                        }
+                    }
+                }
+            }
+            else
+            {
+                // Apply light mode with paper texture
+                // First ensure ArticleBackground is properly set
+                if (ArticleBackground.ImageSource == null)
+                {
+                    LoadArticleBackground();
+                }
+                
+                // Set the RichTextBox background to use the background image
+                ArticleRichTextBox.Background = ArticleBackground;
+                
+                // Update text color for paragraphs
+                if (ArticleRichTextBox.Document != null)
+                {
+                    ArticleRichTextBox.Document.Background = Brushes.Transparent;
+                    
+                    foreach (Block block in ArticleRichTextBox.Document.Blocks)
+                    {
+                        if (block is Paragraph para)
+                        {
+                            // If this is a summary paragraph (has background color and padding)
+                            if (para.Padding.Top > 0 && para.Background != null)
+                            {
+                                para.Background = new SolidColorBrush(Color.FromRgb(245, 245, 220)); // Beige background in light mode
+                                para.Foreground = Brushes.Black;
+                                para.BorderBrush = Brushes.Gray;
+                            }
+                            else
+                            {
+                                // Regular paragraph
+                                para.Foreground = Brushes.Black;
+                            }
+                        }
+                        else if (block is Table table)
+                        {
+                            // Update all table cells to use light mode colors
+                            UpdateTableForDarkMode(table, false);
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Helper method to update table colors based on dark mode setting
+        private void UpdateTableForDarkMode(Table table, bool isDarkMode)
+        {
+            Brush textColor = isDarkMode 
+                ? (SolidColorBrush)Application.Current.Resources["DarkModeText"]
+                : Brushes.Black;
+            
+            // Get header background color
+            Brush headerBackground = isDarkMode ? Brushes.DimGray : Brushes.LightGray;
+            
+            // Process all row groups in the table
+            foreach (TableRowGroup rowGroup in table.RowGroups)
+            {
+                foreach (TableRow row in rowGroup.Rows)
+                {
+                    // Check if this is a header row (typically has background color)
+                    bool isHeaderRow = row.Background != null;
+                    
+                    if (isHeaderRow)
+                    {
+                        // Update header row background
+                        row.Background = headerBackground;
+                    }
+                    
+                    // Update all cells in this row
+                    foreach (TableCell cell in row.Cells)
+                    {
+                        foreach (Block cellBlock in cell.Blocks)
+                        {
+                            if (cellBlock is Paragraph cellPara)
+                            {
+                                // Use white text for header cells in dark mode, black for light mode
+                                if (isHeaderRow)
+                                {
+                                    cellPara.Foreground = isDarkMode ? Brushes.White : Brushes.Black;
+                                }
+                                else
+                                {
+                                    // For regular rows, first check if there are any inline elements
+                                    if (cellPara.Inlines.Count > 0)
+                                    {
+                                        // Check each inline element for special coloring
+                                        foreach (Inline inline in cellPara.Inlines)
+                                        {
+                                            if (inline is Run run)
+                                            {
+                                                // Skip if the text has special coloring for +/- values
+                                                if (run.Text.StartsWith("+") && run.Foreground == Brushes.Green)
+                                                    continue;
+                                                if (run.Text.StartsWith("-") && run.Foreground == Brushes.Red)
+                                                    continue;
+                                                    
+                                                // Update the color for regular text
+                                                run.Foreground = textColor;
+                                            }
+                                            // Handle Bold elements which might contain player names
+                                            else if (inline is Bold bold)
+                                            {
+                                                foreach (Inline boldInline in bold.Inlines)
+                                                {
+                                                    if (boldInline is Run boldRun)
+                                                    {
+                                                        boldRun.Foreground = textColor;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    // If no inlines, update the paragraph foreground
+                                    else
+                                    {
+                                        cellPara.Foreground = textColor;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

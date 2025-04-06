@@ -51,7 +51,12 @@
                         Margin="0,0,5,0"/>
                 <Button Content="Toggle Images"
                         Click="ToggleImages_Click"
-                        Width="120"/>
+                        Width="120"
+                        Margin="0,0,5,0"/>
+                <Button Content="Toggle Dark Mode"
+                        Click="ToggleDarkMode_Click"
+                        Width="130"
+                        Margin="0,0,5,0"/>
             </StackPanel>
             <TabControl x:Name="MainTabControl"
                         KeyDown="MainTabControl_KeyDown">
