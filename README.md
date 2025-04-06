@@ -43,30 +43,29 @@ Nius is a lightweight WPF-based news aggregator application that fetches and dis
 ## Implementation Targets
 Here are the planned features and improvements for Nius:
 
-
-1. **Filters**:
+1. **Crossplatform Port with .NET MAUI for Android**:
+   - Port the application to .NET MAUI for Android.
+2. **Filters**:
     - Add filters to sort and display articles based on:
         - Keywords
         - Publication date
         - Read/unread status
     - Allow users to save custom filter configurations.
 
-2. **UI for Managing Feeds**:
+3. **UI for Managing Feeds**:
     - Add a user-friendly interface for:
         - Adding new RSS feed URLs.
         - Removing unwanted feeds.
         - Sorting feeds alphabetically or by custom order.
 
-3. **Improved Article History**:
+4. **Improved Article History**:
     - Track read/unread articles across sessions.
     - Provide an option to clear or archive old articles.
 
-4. **Performance Optimization**:
+5. **Performance Optimization**:
     - Optimize feed loading and UI rendering for large numbers of articles.
     - Asynchronous operations for smoother user experience.
 
 ## Contributing
 Contributions are welcome! Feel free to open issues or submit pull requests.
 
-## License
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
