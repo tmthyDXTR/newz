@@ -40,6 +40,11 @@ Nius is a lightweight WPF-based news aggregator application that fetches and dis
 - Expand headers to view articles.
 - Double-click an article to open it in your browser.
 
+## Preview Images
+<img src="img/2025-04-06 19-57-04.png" alt="Preview 1" width="200" />
+<img src="img/2025-04-06 19-54-42.png" alt="Preview 2" width="200" />
+<img src="img/2025-04-06 19-55-09.png" alt="Preview 3" width="200" />
+
 ## Implementation Targets
 Here are the planned features and improvements for Nius:
 
