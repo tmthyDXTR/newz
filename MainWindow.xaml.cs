@@ -811,7 +811,7 @@ namespace Nius
                 string content = await FeedLoader.FetchArticleAsync(feedData.Link);
                 Debug.WriteLine("Article loaded from " + feedData.Link);
                 AppendStatus("Article loaded from " + feedData.Link);
-                File.WriteAllText("debug_output.txt", content);
+                // File.WriteAllText("debug_output.txt", content);
 
                 FlowDocument doc;
                 if (feedData.Link.Contains("tagesschau.de"))
@@ -1006,9 +1006,39 @@ namespace Nius
 
         private void ReloadButton_Click(object sender, RoutedEventArgs e)
         {
-            // Use Task.Run to avoid blocking the UI thread
-            // and don't make the method async since we're not awaiting the result
-            Task.Run(async () => await LoadFeeds());
+            // Show loading status
+            AppendStatus("Reloading feeds...");
+            
+            // Use async/await pattern properly
+            _ = Task.Run(async () => {
+                // Fetch data on background thread
+                var feedUrls = GetFeedUrlsFromSettings();
+                var feedDocuments = await FeedLoader.FetchFeedsAsync(feedUrls);
+                
+                // Switch back to UI thread to update UI elements
+                await Dispatcher.InvokeAsync(async () => {
+                    try {
+                        // Clear the news list on UI thread
+                        NewsList.Items.Clear();
+                        
+                        if (feedDocuments.Count == 0) {
+                            HandleEmptyFeedsList();
+                            return;
+                        }
+                        
+                        // Process feeds and add to UI on UI thread
+                        await ProcessFeedDocuments(feedDocuments, feedUrls);
+                        
+                        // Finalize the UI setup
+                        FinalizeFeedsUI();
+                        
+                        AppendStatus("Feeds loaded successfully.");
+                    }
+                    catch (Exception ex) {
+                        HandleFeedLoadingError(ex);
+                    }
+                });
+            });
         }
 
         // Replace both existing ToggleOpenedButton_Click methods with this one
