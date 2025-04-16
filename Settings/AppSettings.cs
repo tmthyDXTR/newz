@@ -23,6 +23,8 @@ namespace Nius.Settings
             "https://www.tagesschau.de/wirtschaft/index~rss2.xml",
             "https://www.tagesschau.de/ausland/index~rss2.xml",
             "https://www.tagesschau.de/inland/regional/bayern/index~rss2.xml",
+            "https://www.spiegel.de/international/index.rss",
+            "http://newsfeed.zeit.de/index",
             "https://www.hltv.org/rss/news"
         };
         public string ArticleFontFamily { get; set; } = "Ubuntu Mono";

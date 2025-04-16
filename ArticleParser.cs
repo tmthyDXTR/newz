@@ -22,6 +22,7 @@ namespace Nius
         private static readonly TazArticleParser _tazParser = new TazArticleParser(_summaryService);
         private static readonly TagesschauArticleParser _tagesschauParser = new TagesschauArticleParser(_summaryService);
         private static readonly HLTVArticleParser _hltvParser = new HLTVArticleParser(_summaryService);
+        private static readonly SpiegelArticleParser _spiegelParser = new SpiegelArticleParser(_summaryService);
         
         // Track dark mode state for all parsers
         private static bool _isDarkMode = false;
@@ -32,6 +33,7 @@ namespace Nius
             _tazParser.SetDarkMode(isDarkMode);
             _tagesschauParser.SetDarkMode(isDarkMode);
             _hltvParser.SetDarkMode(isDarkMode);
+            _spiegelParser.SetDarkMode(isDarkMode);
         }
 
         public static async Task<FlowDocument> ParseTazArticle(string html, FeedItem feedData, AppSettings settings, double windowWidth)
@@ -50,6 +52,12 @@ namespace Nius
         {
             // Delegate to the HLTVArticleParser implementation
             return await _hltvParser.ParseArticle(html, feedData, settings, windowWidth);
+        }
+
+        public static async Task<FlowDocument> ParseSpiegelArticle(string html, FeedItem feedData, AppSettings settings, double windowWidth)
+        {
+            // Delegate to the HLTVArticleParser implementation
+            return await _spiegelParser.ParseArticle(html, feedData, settings, windowWidth);
         }
     }
 }

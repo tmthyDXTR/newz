@@ -48,7 +48,7 @@ namespace Nius
 
             // Load settings when the application starts
             settings = AppSettings.Load();
-            
+
             // Load dark mode setting from settings
             _isDarkMode = settings.IsDarkMode;
 
@@ -539,8 +539,22 @@ namespace Nius
                 Width = currentTextBlockWidth
             };
 
+            // Determine the correct foreground color based on article status
             if (articleHistory.IsOpened(feedItem.Link))
+            {
+                // Article has been read
                 headlineTB.Foreground = Brushes.Gray;
+            }
+            else if (!articleHistory.HasBeenDisplayed(feedItem.Link))
+            {
+                // This is a brand new article (never displayed before)
+                headlineTB.Foreground = Brushes.LightGreen;
+            }
+            else
+            {
+                // Unread but previously displayed article
+                headlineTB.Foreground = Brushes.White;
+            }
 
             textPanel.Children.Add(headlineTB);
             textPanel.Children.Add(new Separator { Margin = new Thickness(0, 6, 0, 6) });
@@ -828,6 +842,13 @@ namespace Nius
                     AppendStatus(debugText);
                     doc = await ArticleParser.ParseHLTVArticle(content, feedData, settings, this.ActualWidth);
                 }
+                else if (feedData.Link.Contains("spiegel.de"))
+                {
+                    string debugText = "Parsing with Spiegel parser.";
+                    Debug.WriteLine(debugText);
+                    AppendStatus(debugText);
+                    doc = await ArticleParser.ParseSpiegelArticle(content, feedData, settings, this.ActualWidth);
+                }
                 else
                 {
                     string debugText = "Parsing with Taz parser.";
@@ -837,13 +858,13 @@ namespace Nius
                 }
 
                 ArticleRichTextBox.Document = doc;
-                
+
                 // Apply dark mode to the article document if we're in dark mode
                 if (_isDarkMode)
                 {
                     // Apply dark background and beige text to FlowDocument
                     doc.Background = (SolidColorBrush)Application.Current.Resources["DarkModeBackground"];
-                    
+
                     // Update text color for all paragraphs
                     foreach (Block block in doc.Blocks)
                     {
@@ -853,7 +874,7 @@ namespace Nius
                         }
                     }
                 }
-                
+
                 MainTabControl.SelectedIndex = 2; // switch to Article tab
                 ArticleScrollViewer.Focus();
                 ArticleScrollViewer.ScrollToTop();
@@ -1008,33 +1029,38 @@ namespace Nius
         {
             // Show loading status
             AppendStatus("Reloading feeds...");
-            
+
             // Use async/await pattern properly
-            _ = Task.Run(async () => {
+            _ = Task.Run(async () =>
+            {
                 // Fetch data on background thread
                 var feedUrls = GetFeedUrlsFromSettings();
                 var feedDocuments = await FeedLoader.FetchFeedsAsync(feedUrls);
-                
+
                 // Switch back to UI thread to update UI elements
-                await Dispatcher.InvokeAsync(async () => {
-                    try {
+                await Dispatcher.InvokeAsync(async () =>
+                {
+                    try
+                    {
                         // Clear the news list on UI thread
                         NewsList.Items.Clear();
-                        
-                        if (feedDocuments.Count == 0) {
+
+                        if (feedDocuments.Count == 0)
+                        {
                             HandleEmptyFeedsList();
                             return;
                         }
-                        
+
                         // Process feeds and add to UI on UI thread
                         await ProcessFeedDocuments(feedDocuments, feedUrls);
-                        
+
                         // Finalize the UI setup
                         FinalizeFeedsUI();
-                        
+
                         AppendStatus("Feeds loaded successfully.");
                     }
-                    catch (Exception ex) {
+                    catch (Exception ex)
+                    {
                         HandleFeedLoadingError(ex);
                     }
                 });
@@ -1732,11 +1758,11 @@ namespace Nius
         private void ToggleDarkMode_Click(object sender, RoutedEventArgs e)
         {
             _isDarkMode = !_isDarkMode;
-            
+
             // Save the dark mode setting to application settings
             settings.IsDarkMode = _isDarkMode;
             settings.Save();
-            
+
             ApplyTheme();
         }
 
@@ -1745,17 +1771,17 @@ namespace Nius
         {
             // Update the global dark mode setting in the article parser
             ArticleParser.SetDarkMode(_isDarkMode);
-            
+
             if (_isDarkMode)
             {
                 // Apply dark mode
                 ArticleRichTextBox.Background = (SolidColorBrush)Application.Current.Resources["DarkModeBackground"];
-                
+
                 // Apply dark background and beige text to FlowDocument
                 if (ArticleRichTextBox.Document != null)
                 {
                     ArticleRichTextBox.Document.Background = (SolidColorBrush)Application.Current.Resources["DarkModeBackground"];
-                    
+
                     // Update text color for all paragraphs
                     foreach (Block block in ArticleRichTextBox.Document.Blocks)
                     {
@@ -1790,15 +1816,15 @@ namespace Nius
                 {
                     LoadArticleBackground();
                 }
-                
+
                 // Set the RichTextBox background to use the background image
                 ArticleRichTextBox.Background = ArticleBackground;
-                
+
                 // Update text color for paragraphs
                 if (ArticleRichTextBox.Document != null)
                 {
                     ArticleRichTextBox.Document.Background = Brushes.Transparent;
-                    
+
                     foreach (Block block in ArticleRichTextBox.Document.Blocks)
                     {
                         if (block is Paragraph para)
@@ -1825,17 +1851,17 @@ namespace Nius
                 }
             }
         }
-        
+
         // Helper method to update table colors based on dark mode setting
         private void UpdateTableForDarkMode(Table table, bool isDarkMode)
         {
-            Brush textColor = isDarkMode 
+            Brush textColor = isDarkMode
                 ? (SolidColorBrush)Application.Current.Resources["DarkModeText"]
                 : Brushes.Black;
-            
+
             // Get header background color
             Brush headerBackground = isDarkMode ? Brushes.DimGray : Brushes.LightGray;
-            
+
             // Process all row groups in the table
             foreach (TableRowGroup rowGroup in table.RowGroups)
             {
@@ -1843,13 +1869,13 @@ namespace Nius
                 {
                     // Check if this is a header row (typically has background color)
                     bool isHeaderRow = row.Background != null;
-                    
+
                     if (isHeaderRow)
                     {
                         // Update header row background
                         row.Background = headerBackground;
                     }
-                    
+
                     // Update all cells in this row
                     foreach (TableCell cell in row.Cells)
                     {
@@ -1877,7 +1903,7 @@ namespace Nius
                                                     continue;
                                                 if (run.Text.StartsWith("-") && run.Foreground == Brushes.Red)
                                                     continue;
-                                                    
+
                                                 // Update the color for regular text
                                                 run.Foreground = textColor;
                                             }
