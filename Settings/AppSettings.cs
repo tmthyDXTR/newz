@@ -17,6 +17,7 @@ namespace Nius.Settings
         public List<string> FeedUrls { get; set; } = new List<string>
         {
             "https://taz.de/!p4608;rss/",
+            "https://www.deutschlandfunk.de/nachrichten-100.rss",
             // "https://www.tagesschau.de/infoservices/alle-meldungen-100~rss2.xml",
             "https://www.tagesschau.de/inland/index~rss2.xml",
             "https://www.tagesschau.de/investigativ/index~rss2.xml",

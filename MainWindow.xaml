@@ -75,9 +75,41 @@
                 </TabItem>
                 <TabItem Header="News">
                     <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        
+                        <!-- Search/Filter Box -->
+                        <StackPanel Orientation="Horizontal" 
+                                    Margin="10,10,10,5" 
+                                    Grid.Row="0">
+                            <TextBlock Text="Filter:" 
+                                       VerticalAlignment="Center" 
+                                       Margin="0,0,10,0" 
+                                       Foreground="White"/>
+                            <TextBox x:Name="SearchTextBox"
+                                     Width="200"
+                                     Height="25"
+                                     TextChanged="SearchTextBox_TextChanged"
+                                     Foreground="Black"
+                                     Background="White"
+                                     BorderThickness="1"
+                                     BorderBrush="Gray"
+                                     VerticalContentAlignment="Center"
+                                     Padding="5,0"/>
+                            <Button x:Name="ClearSearchButton"
+                                    Content="Clear"
+                                    Width="50"
+                                    Height="25"
+                                    Margin="5,0,0,0"
+                                    Click="ClearSearchButton_Click"/>
+                        </StackPanel>
+
                         <ScrollViewer VerticalScrollBarVisibility="Auto"
                                       HorizontalScrollBarVisibility="Auto"
-                                      PreviewMouseWheel="ScrollViewer_PreviewMouseWheel">
+                                      PreviewMouseWheel="ScrollViewer_PreviewMouseWheel"
+                                      Grid.Row="1">
                             <ListBox x:Name="NewsList"
                                      FontFamily="Ubuntu Mono"
                                      Background="Black"
@@ -93,7 +125,7 @@
                                      IsSynchronizedWithCurrentItem="True"
                                      PreviewKeyDown="NewsList_PreviewKeyDown"
                                      MouseDoubleClick="ListBox_MouseDoubleClick"
-                                     KeyDown="ListBox_KeyDown">
+                                     KeyDown="NewsList_KeyDown">
                                 <ListBox.ItemContainerStyle>
                                     <Style TargetType="ListBoxItem">
                                         <Setter Property="HorizontalContentAlignment"

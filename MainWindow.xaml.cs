@@ -41,6 +41,9 @@ namespace Nius
         private bool showArticleImages = true; // NEW: Toggle for image preview in list
         // Add a flag to track the current theme
         private bool _isDarkMode = false;
+        
+        // Search/filter functionality
+        private string currentSearchTerm = string.Empty;
 
         public MainWindow()
         {
@@ -212,6 +215,9 @@ namespace Nius
 
                 // Finalize the UI setup
                 FinalizeFeedsUI();
+
+                // Apply any active search filter
+                ApplySearchFilter();
 
                 AppendStatus("Feeds loaded successfully.");
             }
@@ -613,29 +619,14 @@ namespace Nius
                 e.Handled = true;
             };
 
-            // Handle keyboard navigation
+            // Simple key handling - let the parent ListBox handle navigation
+            // Only handle Enter and Right for opening articles
             articleItem.KeyDown += (s, e) =>
             {
-                switch (e.Key)
+                if (e.Key == Key.Enter || e.Key == Key.Right)
                 {
-                    case Key.Enter:
-                    case Key.Right:
-                        // Open article
-                        HandleLinkClick(feedItem);
-                        e.Handled = true;
-                        break;
-
-                    case Key.Left:
-                        // Find and collapse parent feed
-                        var parentListBox = FindVisualParent<ListBox>(articleItem);
-                        var parentExpander = FindVisualParent<Expander>(parentListBox);
-                        if (parentExpander != null)
-                        {
-                            parentExpander.IsExpanded = false;
-                            parentExpander.Focus();
-                            e.Handled = true;
-                        }
-                        break;
+                    HandleLinkClick(feedItem);
+                    e.Handled = true;
                 }
             };
         }
@@ -912,38 +903,106 @@ namespace Nius
             }
         }
 
-        private void ListBox_KeyDown(object sender, KeyEventArgs e)
+        // Simplified keyboard navigation for the main news list
+        private void NewsList_KeyDown(object sender, KeyEventArgs e)
         {
-            if (e.Key == Key.Enter || e.Key == Key.Right)
+            if (sender is ListBox listBox)
             {
-                if (sender is ListBoxItem item && item.Tag is FeedItem feedData)
+                if (e.Key == Key.Enter || e.Key == Key.Right)
                 {
-                    Debug.WriteLine("Article loading initiated via " + e.Key + " key from list view. Link: " + feedData.Link);
-                    HandleLinkClick(feedData);
+                    // Check if we have a selected article item in an expanded feed
+                    if (TryOpenSelectedArticle(listBox))
+                    {
+                        e.Handled = true;
+                        return;
+                    }
+                    
+                    // If no article selected, try to expand/enter the selected feed
+                    if (listBox.SelectedItem is Expander expander)
+                    {
+                        if (!expander.IsExpanded)
+                        {
+                            expander.IsExpanded = true;
+                            // Focus first article when expanded
+                            Dispatcher.BeginInvoke(new Action(() => FocusFirstArticleInExpander(expander)), DispatcherPriority.ContextIdle);
+                        }
+                        else
+                        {
+                            // If already expanded, focus first article
+                            FocusFirstArticleInExpander(expander);
+                        }
+                        e.Handled = true;
+                    }
                 }
-                e.Handled = true;
+            }
+        }
+
+        // Helper method to try opening a selected article
+        private bool TryOpenSelectedArticle(ListBox mainList)
+        {
+            // Look for a selected article within any expanded feed
+            foreach (var item in mainList.Items)
+            {
+                if (item is Expander expander && expander.IsExpanded && expander.Content is ListBox articlesList)
+                {
+                    if (articlesList.SelectedItem is ListBoxItem selectedArticle && selectedArticle.Tag is FeedItem feedItem)
+                    {
+                        HandleLinkClick(feedItem);
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        // Helper method to focus the first article in an expander
+        private void FocusFirstArticleInExpander(Expander expander)
+        {
+            if (expander.Content is ListBox articlesList && articlesList.Items.Count > 0)
+            {
+                articlesList.SelectedIndex = 0;
+                articlesList.Focus();
+                
+                // Also focus the specific list item
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    if (articlesList.ItemContainerGenerator.ContainerFromIndex(0) is ListBoxItem firstItem)
+                    {
+                        firstItem.Focus();
+                    }
+                }), DispatcherPriority.ContextIdle);
             }
         }
 
         private void MainTabControl_KeyDown(object sender, KeyEventArgs e)
         {
-            // When in the article tab, Left key should go back to news tab.
-            if (e.Key == Key.Left && MainTabControl.SelectedIndex == 2)
+            // Handle Escape and Left arrow to go back to news from article
+            if ((e.Key == Key.Left || e.Key == Key.Escape) && MainTabControl.SelectedIndex == 2)
             {
-                MainTabControl.SelectedIndex = 1;
+                MainTabControl.SelectedIndex = 1; // Go to News tab
                 e.Handled = true;
 
-                // Try to restore focus to the last selected item
-                if (lastSelectedArticleItem != null)
+                // Restore focus to the news list
+                Dispatcher.BeginInvoke(new Action(() =>
                 {
-                    lastSelectedArticleItem.Focus();
-                }
-                else
-                {
-                    NewsList.Focus();
-                }
+                    if (lastSelectedArticleItem != null)
+                    {
+                        // Try to focus the last selected article
+                        lastSelectedArticleItem.Focus();
+                        
+                        // Also select it in its parent listbox
+                        var parentListBox = FindVisualParent<ListBox>(lastSelectedArticleItem);
+                        if (parentListBox != null)
+                        {
+                            parentListBox.SelectedItem = lastSelectedArticleItem;
+                        }
+                    }
+                    else
+                    {
+                        NewsList.Focus();
+                    }
+                }), DispatcherPriority.ContextIdle);
             }
-            // Optionally, additional navigation can be added here.
         }
 
         private void ArticleRichTextBox_PreviewKeyDown(object sender, KeyEventArgs e)
@@ -960,21 +1019,31 @@ namespace Nius
         {
             Debug.WriteLine($"Key pressed: {e.Key}, Modifiers: {Keyboard.Modifiers}");
 
-            // If left key alone, switch tab.
-            if (e.Key == Key.Left && Keyboard.Modifiers == ModifierKeys.None && MainTabControl.SelectedIndex == 2)
+            // If left key or escape alone, switch tab.
+            if ((e.Key == Key.Left || e.Key == Key.Escape) && Keyboard.Modifiers == ModifierKeys.None && MainTabControl.SelectedIndex == 2)
             {
                 MainTabControl.SelectedIndex = 1;
                 e.Handled = true;
 
                 // Try to restore focus to the last selected item
-                if (lastSelectedArticleItem != null)
+                Dispatcher.BeginInvoke(new Action(() =>
                 {
-                    lastSelectedArticleItem.Focus();
-                }
-                else
-                {
-                    NewsList.Focus();
-                }
+                    if (lastSelectedArticleItem != null)
+                    {
+                        lastSelectedArticleItem.Focus();
+                        
+                        // Also select it in its parent listbox
+                        var parentListBox = FindVisualParent<ListBox>(lastSelectedArticleItem);
+                        if (parentListBox != null)
+                        {
+                            parentListBox.SelectedItem = lastSelectedArticleItem;
+                        }
+                    }
+                    else
+                    {
+                        NewsList.Focus();
+                    }
+                }), DispatcherPriority.ContextIdle);
                 return;
             }
 
@@ -1057,6 +1126,9 @@ namespace Nius
                         // Finalize the UI setup
                         FinalizeFeedsUI();
 
+                        // Apply any active search filter
+                        ApplySearchFilter();
+
                         AppendStatus("Feeds loaded successfully.");
                     }
                     catch (Exception ex)
@@ -1073,89 +1145,15 @@ namespace Nius
             showOpenedArticles = !showOpenedArticles;
             Debug.WriteLine($"Toggled showOpenedArticles to {showOpenedArticles}");
 
-            // Try to update visibility without full reload if possible
-            if (TryRefreshNewsListVisibility())
-            {
-                // If the list was successfully filtered without reload
-                Debug.WriteLine("Updated article visibility without reloading feeds");
-            }
-            else
-            {
-                // Fall back to full reload if filtering doesn't work
-                // Use Task.Run to avoid blocking the UI thread
-                // and don't make the method async since we don't need to await
-                Task.Run(async () => await LoadFeeds());
-            }
-        }
-
-        // Add this helper method to attempt filtering without reload
-        private bool TryRefreshNewsListVisibility()
-        {
-            bool success = false;
-            try
-            {
-                foreach (var expanderObj in NewsList.Items)
-                {
-                    if (expanderObj is Expander expander && expander.Content is ListBox listBox)
-                    {
-                        foreach (var itemObj in listBox.Items)
-                        {
-                            if (itemObj is ListBoxItem lbi && lbi.Tag is FeedItem feedItem)
-                            {
-                                bool isOpened = articleHistory.IsOpened(feedItem.Link);
-                                bool shouldBeVisible = showOpenedArticles || !isOpened;
-
-                                // Update visibility based on opened status and current filter setting
-                                lbi.Visibility = shouldBeVisible ? Visibility.Visible : Visibility.Collapsed;
-                            }
-                        }
-                        success = true;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Error filtering articles: {ex.Message}");
-                success = false;
-            }
-
-            return success;
+            // Apply the search filter which now also considers the showOpenedArticles setting
+            ApplySearchFilter();
         }
 
         // NEW: Update styles immediately (called after marking an article opened)
         private void UpdateOpenedStyles()
         {
-            // Create a darker gray brush matching the ReadItemStyle
-            SolidColorBrush readItemBrush = (SolidColorBrush)FindResource("ReadItemBrush") ??
-                                           new SolidColorBrush(Color.FromRgb(0xCC, 0xCC, 0xCC)); //rgb(130, 130, 130) - darker gray
-
-            foreach (var expanderObj in NewsList.Items)
-            {
-                if (expanderObj is Expander expander &&
-                    expander.Content is ListBox listBox)
-                {
-                    foreach (var itemObj in listBox.Items)
-                    {
-                        if (itemObj is ListBoxItem lbi && lbi.Tag is FeedItem feedItem)
-                        {
-                            // Find the headline TextBlock inside the item's panel
-                            if (lbi.Content is StackPanel panel)
-                            {
-                                foreach (var child in panel.Children)
-                                {
-                                    if (child is TextBlock tb && tb.Text.Contains(". "))
-                                    {
-                                        tb.Foreground = articleHistory.IsOpened(feedItem.Link)
-                                            ? readItemBrush  // Use the darker gray brush instead of LightGray
-                                            : Brushes.White;
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            // Apply the search filter which will update both visibility and styles
+            ApplySearchFilter();
         }
 
         private void ScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
@@ -1181,7 +1179,7 @@ namespace Nius
             }
         }
 
-        // Handle key navigation in feed article lists to prevent bubbling
+        // Handle key navigation in feed article lists
         private void FeedArticlesList_KeyDown(object sender, KeyEventArgs e)
         {
             ListBox listBox = sender as ListBox;
@@ -1194,44 +1192,38 @@ namespace Nius
                     selectedItem.Tag is FeedItem feedItem)
                 {
                     HandleLinkClick(feedItem);
-                    e.Handled = true; // Stop event bubbling
-                    return; // Exit early after handling the article click
+                    e.Handled = true;
                 }
             }
-            else if (e.Key == Key.Left)
+            else if (e.Key == Key.Left || e.Key == Key.Escape)
             {
-                // Left key should collapse parent feed and focus header
+                // Left/Escape key should collapse parent feed and focus header
                 Expander parentExpander = FindVisualParent<Expander>(listBox);
                 if (parentExpander != null)
                 {
-                    // Collapse the expander
                     parentExpander.IsExpanded = false;
-
-                    // Focus the header
                     parentExpander.Focus();
                     e.Handled = true;
                 }
             }
         }
 
-        // Improve expander key handling to coordinate with list items
+        // Simplified expander key handling
         private void FeedExpander_PreviewKeyDown(object sender, KeyEventArgs e)
         {
             if (!(sender is Expander expander)) return;
 
-            // Get the original source of the event to ensure it's directly from the expander
-            if (e.OriginalSource != sender && !(e.OriginalSource is ToggleButton))
-            {
-                // Event came from a child element, not directly from expander header
-                return;
-            }
-
             switch (e.Key)
             {
                 case Key.Enter:
-                case Key.Right: // Make Right key behave like Enter
+                case Key.Right:
                     // Toggle expanded state on Enter or Right key
                     expander.IsExpanded = !expander.IsExpanded;
+                    if (expander.IsExpanded)
+                    {
+                        // Focus first article when expanded
+                        Dispatcher.BeginInvoke(new Action(() => FocusFirstArticleInExpander(expander)), DispatcherPriority.ContextIdle);
+                    }
                     e.Handled = true;
                     break;
             }
@@ -1316,34 +1308,40 @@ namespace Nius
         }
 
         // Enhanced ListBox keyboard navigation at the main list level
-        // Updated NewsList_PreviewKeyDown: only intercepts Enter/Right, leaves Up/Down for default navigation.
+        // Simplified navigation: Up/Down navigate, Enter/Right open articles or expand feeds
         private void NewsList_PreviewKeyDown(object sender, KeyEventArgs e)
         {
-            ListBox listBox = sender as ListBox;
-            if (listBox == null) return;
-
-            // Let Up and Down keys work normally.
+            // Let the default Up/Down navigation work for the main list
             if (e.Key == Key.Up || e.Key == Key.Down)
-                return;
+            {
+                return; // Let default navigation handle this
+            }
 
-            // If a ListBoxItem (article headline) has focus, let its own handler take over.
-            if (FocusManager.GetFocusedElement(this) is ListBoxItem)
+            // Don't interfere if focus is somewhere else
+            if (!(FocusManager.GetFocusedElement(this) is FrameworkElement focusedElement) ||
+                !IsElementInNewsList(focusedElement))
+            {
                 return;
+            }
 
-            // Only process Enter/Right if the selected item is an Expander.
+            // Handle Enter and Right to open articles or expand feeds
             if (e.Key == Key.Enter || e.Key == Key.Right)
             {
-                if (listBox.SelectedItem is Expander expander)
-                {
-                    // Force focus to the header if not already focused.
-                    if (!(FocusManager.GetFocusedElement(this) is Expander))
-                        expander.Focus();
-
-                    // Toggle expansion.
-                    expander.IsExpanded = !expander.IsExpanded;
-                    e.Handled = true;
-                }
+                e.Handled = true; // Prevent other handlers from interfering
             }
+        }
+
+        // Helper method to check if an element is within the NewsList
+        private bool IsElementInNewsList(FrameworkElement element)
+        {
+            DependencyObject parent = element;
+            while (parent != null)
+            {
+                if (parent == NewsList)
+                    return true;
+                parent = VisualTreeHelper.GetParent(parent);
+            }
+            return false;
         }
 
         // NEW: Add method to update unread counts in feed headers
@@ -1849,6 +1847,219 @@ namespace Nius
                         }
                     }
                 }
+            }
+        }
+
+        // Search/Filter functionality
+        private void SearchTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (sender is TextBox textBox)
+            {
+                currentSearchTerm = textBox.Text.Trim().ToLowerInvariant();
+                ApplySearchFilter();
+            }
+        }
+
+        private void ClearSearchButton_Click(object sender, RoutedEventArgs e)
+        {
+            SearchTextBox.Text = string.Empty;
+            currentSearchTerm = string.Empty;
+            ApplySearchFilter();
+            SearchTextBox.Focus();
+        }
+
+        private void ApplySearchFilter()
+        {
+            try
+            {
+                bool hasSearchTerm = !string.IsNullOrEmpty(currentSearchTerm);
+                int visibleArticleCount = 0;
+                int totalFeedsWithVisibleArticles = 0;
+
+                foreach (var expanderObj in NewsList.Items)
+                {
+                    if (expanderObj is Expander expander && expander.Content is ListBox listBox)
+                    {
+                        int visibleArticlesInFeed = 0;
+
+                        foreach (var itemObj in listBox.Items)
+                        {
+                            if (itemObj is ListBoxItem lbi && lbi.Tag is FeedItem feedItem)
+                            {
+                                bool shouldBeVisible = true;
+
+                                // Apply search filter
+                                if (hasSearchTerm)
+                                {
+                                    // Find the title text in the article item
+                                    string articleTitle = GetArticleTitleFromListBoxItem(lbi);
+                                    if (!string.IsNullOrEmpty(articleTitle))
+                                    {
+                                        shouldBeVisible = articleTitle.ToLowerInvariant().Contains(currentSearchTerm);
+                                    }
+                                }
+
+                                // Also consider the "show opened articles" filter
+                                if (shouldBeVisible && !showOpenedArticles && articleHistory.IsOpened(feedItem.Link))
+                                {
+                                    shouldBeVisible = false;
+                                }
+
+                                // Update visibility
+                                lbi.Visibility = shouldBeVisible ? Visibility.Visible : Visibility.Collapsed;
+
+                                if (shouldBeVisible)
+                                {
+                                    visibleArticlesInFeed++;
+                                    visibleArticleCount++;
+                                }
+                            }
+                        }
+
+                        // Show/hide the entire feed based on whether it has visible articles
+                        if (visibleArticlesInFeed > 0)
+                        {
+                            expander.Visibility = Visibility.Visible;
+                            totalFeedsWithVisibleArticles++;
+
+                            // Update the feed header to show filtered count if search is active
+                            UpdateFeedHeaderWithFilterInfo(expander, visibleArticlesInFeed, hasSearchTerm);
+                        }
+                        else
+                        {
+                            expander.Visibility = Visibility.Collapsed;
+                        }
+                    }
+                }
+
+                // Update status to show filter results
+                if (hasSearchTerm)
+                {
+                    AppendStatus($"Filter applied: '{currentSearchTerm}' - Found {visibleArticleCount} articles in {totalFeedsWithVisibleArticles} feeds");
+                }
+                else
+                {
+                    AppendStatus("Filter cleared - All articles visible");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error applying search filter: {ex.Message}");
+            }
+        }
+
+        private string GetArticleTitleFromListBoxItem(ListBoxItem lbi)
+        {
+            try
+            {
+                if (lbi.Content is StackPanel panel)
+                {
+                    foreach (var child in panel.Children)
+                    {
+                        if (child is StackPanel innerPanel)
+                        {
+                            foreach (var innerChild in innerPanel.Children)
+                            {
+                                if (innerChild is TextBlock tb && tb.Text.Contains(". "))
+                                {
+                                    // Extract title (remove the number prefix like "1. ")
+                                    string fullText = tb.Text;
+                                    int dotIndex = fullText.IndexOf(". ");
+                                    if (dotIndex >= 0 && dotIndex < fullText.Length - 2)
+                                    {
+                                        return fullText.Substring(dotIndex + 2);
+                                    }
+                                    return fullText;
+                                }
+                            }
+                        }
+                        else if (child is TextBlock tb && tb.Text.Contains(". "))
+                        {
+                            // Extract title (remove the number prefix like "1. ")
+                            string fullText = tb.Text;
+                            int dotIndex = fullText.IndexOf(". ");
+                            if (dotIndex >= 0 && dotIndex < fullText.Length - 2)
+                            {
+                                return fullText.Substring(dotIndex + 2);
+                            }
+                            return fullText;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error extracting title from ListBoxItem: {ex.Message}");
+            }
+
+            return string.Empty;
+        }
+
+        private void UpdateFeedHeaderWithFilterInfo(Expander expander, int visibleCount, bool isFiltered)
+        {
+            try
+            {
+                if (expander.Header is StackPanel headerPanel && headerPanel.Children.Count > 0)
+                {
+                    if (headerPanel.Children[0] is StackPanel titleRow && titleRow.Children.Count > 1)
+                    {
+                        // Find existing count block (should be at index 1)
+                        if (titleRow.Children[1] is TextBlock countBlock)
+                        {
+                            if (isFiltered)
+                            {
+                                // Update to show filtered count
+                                countBlock.Text = $"({visibleCount} matches)";
+                                countBlock.Foreground = Brushes.Orange;
+                            }
+                            else
+                            {
+                                // Restore original unread count display
+                                // We'll need to recalculate the unread count
+                                int unreadCount = 0;
+                                if (expander.Content is ListBox listBox)
+                                {
+                                    foreach (var itemObj in listBox.Items)
+                                    {
+                                        if (itemObj is ListBoxItem lbi && lbi.Tag is FeedItem fi && !articleHistory.IsOpened(fi.Link))
+                                        {
+                                            unreadCount++;
+                                        }
+                                    }
+                                }
+
+                                if (unreadCount > 0)
+                                {
+                                    countBlock.Text = $"({unreadCount} unread)";
+                                    countBlock.Foreground = Brushes.LightGreen;
+                                }
+                                else
+                                {
+                                    // Remove count block if no unread articles
+                                    titleRow.Children.Remove(countBlock);
+                                }
+                            }
+                        }
+                        else if (isFiltered && visibleCount > 0)
+                        {
+                            // Add filter count block if it doesn't exist
+                            TextBlock newCountBlock = new TextBlock
+                            {
+                                Text = $"({visibleCount} matches)",
+                                Foreground = Brushes.Orange,
+                                FontWeight = FontWeights.Bold,
+                                FontSize = 16,
+                                VerticalAlignment = VerticalAlignment.Center,
+                                Margin = new Thickness(5, 0, 0, 0)
+                            };
+                            titleRow.Children.Add(newCountBlock);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error updating feed header with filter info: {ex.Message}");
             }
         }
 

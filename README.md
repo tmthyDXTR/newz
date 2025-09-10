@@ -1,6 +1,6 @@
-# Nius - News Aggregator
+# Newz - News Aggregator
 
-Nius is a lightweight WPF-based news aggregator application that fetches and displays RSS feeds. It supports features like image previews, article history, and customizable settings.
+Newz is a lightweight WPF-based news aggregator application that fetches and displays RSS feeds. It supports features like image previews, article history, and customizable settings.
 
 ## Features
 - **RSS Feed Aggregation**: Fetch and display RSS feeds with image previews.
@@ -21,8 +21,8 @@ Nius is a lightweight WPF-based news aggregator application that fetches and dis
 ## Installation
 1. Clone the repository:
     ```bash
-    git clone https://github.com/tmthyDXTR/nius.git
-    cd nius
+    git clone https://github.com/tmthyDXTR/Newz.git
+    cd Newz
     ```
 
 2. Build the project:
@@ -46,7 +46,7 @@ Nius is a lightweight WPF-based news aggregator application that fetches and dis
 <img src="img/2025-04-06 19-55-09.png" alt="Preview 3" width="200" />
 
 ## Implementation Targets
-Here are the planned features and improvements for Nius:
+Here are the planned features and improvements for Newz:
 
 1. **Crossplatform Port with .NET MAUI for Android**:
    - Port the application to .NET MAUI for Android.
