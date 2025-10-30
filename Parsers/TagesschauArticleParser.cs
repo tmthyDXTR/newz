@@ -8,9 +8,9 @@ using System.Windows.Documents;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using HtmlAgilityPack;
-using Nius.Settings;
+using Newz.Settings;
 
-namespace Nius.Parsers
+namespace Newz.Parsers
 {
     public class TagesschauArticleParser : IArticleParser
     {

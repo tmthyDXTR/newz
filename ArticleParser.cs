@@ -11,10 +11,10 @@ using System.Windows.Documents;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using HtmlAgilityPack;
-using Nius.Settings;
-using Nius.Parsers;
+using Newz.Settings;
+using Newz.Parsers;
 
-namespace Nius
+namespace Newz
 {
     public static class ArticleParser
     {

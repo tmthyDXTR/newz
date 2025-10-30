@@ -9,9 +9,9 @@ using System.Windows;
 using System.Linq;
 using System.Collections.Generic;
 using HtmlAgilityPack;
-using Nius.Settings;
+using Newz.Settings;
 
-namespace Nius.Parsers
+namespace Newz.Parsers
 {
     public class SpiegelArticleParser : IArticleParser
     {

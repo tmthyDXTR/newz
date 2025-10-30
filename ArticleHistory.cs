@@ -4,7 +4,7 @@ using System.IO;
 using System.Text.Json;
 using System.Linq;
 
-namespace Nius
+namespace Newz
 {
     /// <summary>
     /// Tracks article reading history, including opened articles and displayed articles
@@ -13,7 +13,7 @@ namespace Nius
     {
         private static readonly string HistoryFilePath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "Nius", "article_history.json");
+            "Newz", "article_history.json");
             
         // Dictionary of article URLs to their read status timestamp
         public Dictionary<string, DateTime> OpenedArticles { get; set; } = new Dictionary<string, DateTime>();

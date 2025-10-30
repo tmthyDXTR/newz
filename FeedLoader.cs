@@ -8,7 +8,7 @@ using System.Net;
 using System.Text;
 using System.IO;
 
-namespace Nius
+namespace Newz
 {
     public static class FeedLoader
     {

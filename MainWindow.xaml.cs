@@ -12,7 +12,7 @@ using System.Xml.Linq;
 using HtmlAgilityPack; // added using directive. Ensure you install the HtmlAgilityPack NuGet package
 using System.Windows.Documents; // added using directive for FlowDocument
 using System.Windows.Media.Imaging; // Added for displaying images
-using Nius.Settings; // Add reference to the settings namespace
+using Newz.Settings; // Add reference to the settings namespace
 using System.IO;
 using System.Windows.Controls.Primitives; // For ToggleButton
 using System.Windows.Threading;           // For DispatcherPriority
@@ -26,7 +26,7 @@ public class FeedItem
 
 }
 
-namespace Nius
+namespace Newz
 {
     public partial class MainWindow : Window
     {

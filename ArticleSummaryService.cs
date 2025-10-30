@@ -9,9 +9,9 @@ using System.Windows;
 using System.Windows.Documents;
 using System.Windows.Media;
 using System.Windows.Threading;
-using Nius.Settings;
+using Newz.Settings;
 
-namespace Nius
+namespace Newz
 {
     public class ArticleSummaryService
     {

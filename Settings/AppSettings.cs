@@ -5,13 +5,13 @@ using System.Text.Json;
 using System.Windows;
 using System.Windows.Media;
 
-namespace Nius.Settings
+namespace Newz.Settings
 {
     public class AppSettings
     {
         private static readonly string SettingsFilePath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "Nius", "settings.json");
+            "Newz", "settings.json");
 
         // Settings properties with defaults
         public List<string> FeedUrls { get; set; } = new List<string>

@@ -1,8 +1,8 @@
 using System.Threading.Tasks;
 using System.Windows.Documents;
-using Nius.Settings;
+using Newz.Settings;
 
-namespace Nius.Parsers
+namespace Newz.Parsers
 {
     public interface IArticleParser
     {

@@ -7,13 +7,13 @@ using System.Windows.Documents;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using HtmlAgilityPack;
-using Nius.Settings;
+using Newz.Settings;
 using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-namespace Nius.Parsers
+namespace Newz.Parsers
 {
     public class HLTVArticleParser : IArticleParser
     {

@@ -4,6 +4,10 @@
     <TargetFramework>net9.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
     <ApplicationIcon>img\app_icon.ico</ApplicationIcon>
+    <AssemblyName>Newz</AssemblyName>
+    <RootNamespace>Newz</RootNamespace>
+    <Product>Newz</Product>
+    <AssemblyTitle>Newz</AssemblyTitle>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="HtmlAgilityPack" Version="1.12.0" />

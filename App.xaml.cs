@@ -2,7 +2,7 @@ using System;
 using System.Windows;
 using System.Windows.Threading;
 
-namespace Nius
+namespace Newz
 {
     public partial class App : Application
     {

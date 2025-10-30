@@ -71,6 +71,11 @@ Here are the planned features and improvements for Newz:
     - Optimize feed loading and UI rendering for large numbers of articles.
     - Asynchronous operations for smoother user experience.
 
+## Author
+
+Created by [supacoda](https://www.supacoda.de) - Professional web development and UX design.
+
 ## Contributing
-Contributions are welcome! Feel free to open issues or submit pull requests.
+
+This component was extracted from a real-world application and refined for general use. Contributions and improvements are welcome!
 
