@@ -77,5 +77,4 @@ Created by [supacoda](https://www.supacoda.de) - Professional web development an
 
 ## Contributing
 
-This component was extracted from a real-world application and refined for general use. Contributions and improvements are welcome!
-
+Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
